@@ -20,7 +20,7 @@ Consult the matrix below for features that are supported so far
         pattern [ ]
         format=date-time [ ]
         format=uuid [ ]
-    type: string with enum [ ]
+    type: string with enum [x]
     type: integer [x]
         maximum [ ]
         minimum [ ]
