@@ -35,10 +35,10 @@ Consult the matrix below for features that are supported so far
         multipleOf
     type: boolean [x]
     type: null [ ]
-    type: array [ ]
-        items [ ]
+    type: array [x]
+        items [x]
         minItems [ ]
-        maxItems [ ]
+        maxItems [x]
     type: object [x]
         properties [x]
         required [ ]

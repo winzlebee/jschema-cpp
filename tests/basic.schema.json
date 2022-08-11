@@ -12,6 +12,12 @@
             "type" : "boolean",
             "default" : false
         },
+        "pets" : {
+            "type" : "array",
+            "items" : {
+                "type" : "string"
+            }
+        },
         "address" : {
             "type" : "object",
             "properties" : {

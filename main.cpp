@@ -20,6 +20,7 @@ enum TokenType {
   BOOLEAN,
   STRING,
   OBJECT,
+  ARRAY,
 };
 
 const std::map<std::string, TokenType> TOKEN_TYPES = {
@@ -28,6 +29,7 @@ const std::map<std::string, TokenType> TOKEN_TYPES = {
   {"boolean", BOOLEAN},
   {"string", STRING},
   {"object", OBJECT},
+  {"array", ARRAY}
 };
 
 // Makes a string conform to Camel Case
@@ -68,6 +70,7 @@ struct SchemaParser : nl::json_sax<nl::json>
     : m_currentVariable(baseClassName)
   {
     m_isPropertiesStack.push(false);
+    m_isArrayItemsStack.push(false);
   }
 
   virtual ~SchemaParser()
@@ -86,6 +89,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   virtual void object_default_boolean(std::string variable, bool boolean) = 0;
   virtual void object_property_ref(std::string name, std::string target) = 0;
   virtual void object_property_enum_element(std::string variable, std::string name) = 0;
+  virtual void object_property_array(std::string name) = 0;
   virtual void end_object_properties() = 0;
 
   bool null() override
@@ -233,6 +237,9 @@ struct SchemaParser : nl::json_sax<nl::json>
             object_property_ref(m_currentVariable, pascalCase(m_currentVariable));
           }
           break;
+        case ARRAY:
+          object_property_array(m_currentVariable);
+          break;
       }
 
       return true;
@@ -257,6 +264,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   {
     // Token types within a stack shouldn't contradict each other
     m_typeStack.push(UNKNOWN);
+    m_isArrayItemsStack.push(m_isArrayItems);
 
     if (m_isPropertiesStack.top()) {
       begin_object_properties(pascalCase(m_currentVariable));
@@ -270,6 +278,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   bool end_object()
   {
     m_typeStack.pop();
+    m_isArrayItemsStack.pop();
 
     m_isPropertiesStack.pop();
     if (m_isPropertiesStack.top()) {
@@ -301,6 +310,7 @@ struct SchemaParser : nl::json_sax<nl::json>
     m_type = false;
     m_default = false;
     m_unsupported = false;
+    m_isArrayItems = false;
 
     std::cout << val << std::endl;
 
@@ -316,6 +326,12 @@ struct SchemaParser : nl::json_sax<nl::json>
 
     if (val == PROPERTIES_KEY) {
       m_isPropertiesStack.top() = true;
+      return true;
+    }
+
+    if (val == ARRAY_ITEMS_KEY) {
+      m_isArrayItemsStack.top() = true;
+      m_isArrayItems = true;
       return true;
     }
 
@@ -361,11 +377,13 @@ private:
   bool m_object = false;
   bool m_unsupported = false;
   bool m_enum = false;
+  bool m_isArrayItems = false;
 
   std::stack<TokenType> m_typeStack;
 
   // Whether the current object represents properties
   std::stack<bool> m_isPropertiesStack;
+  std::stack<bool> m_isArrayItemsStack;
 
   // Attributes that, when encountered, are not used for class naming
   const std::string PROPERTIES_KEY = "properties";
@@ -373,6 +391,7 @@ private:
   const std::string DEFAULT_KEY = "default";
   const std::string REFERENCE_KEY = "$ref";
   const std::string ENUM_KEY = "enum";
+  const std::string ARRAY_ITEMS_KEY = "items";
   const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, "items", "enum"};
   const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description"};
 };
@@ -459,6 +478,11 @@ struct SchemaTemplateParser : SchemaParser
       getCurrent()["variables"][name]["className"] = target;
     }
 
+    void object_property_array(std::string name) override
+    {
+      getCurrent()["variables"][name]["isArray"] = true;
+    }
+
     void object_property_enum_element(std::string variable, std::string name) override
     {
       object_property_ref(variable, pascalCase(variable));
@@ -493,7 +517,7 @@ int main(int argc, char *argv[])
 
   std::ofstream outFile("source.h");
 
-  std::cout << nl::to_string(tParser.output) << std::endl;
+  std::cout << tParser.output.dump(4) << std::endl;
 
   inja::Environment env;
   env.set_trim_blocks(true);
