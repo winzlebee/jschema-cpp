@@ -17,6 +17,10 @@
             "properties" : {
                 "streetNumber" : {
                     "type" : "integer"
+                },
+                "streetType" : {
+                    "type" : "string",
+                    "enum" : ["street", "lane", "crescent"]
                 }
             }
         }

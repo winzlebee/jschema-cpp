@@ -85,6 +85,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   virtual void object_property_boolean(std::string name) = 0;
   virtual void object_default_boolean(std::string variable, bool boolean) = 0;
   virtual void object_property_ref(std::string name, std::string target) = 0;
+  virtual void object_property_enum_element(std::string variable, std::string name) = 0;
   virtual void end_object_properties() = 0;
 
   bool null() override
@@ -184,6 +185,11 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
+    if (m_enum) {
+      object_property_enum_element(m_currentVariable, val);
+      return true;
+    }
+
     if (m_type) {
 
       if (!TOKEN_TYPES.count(val)) {
@@ -272,6 +278,12 @@ struct SchemaParser : nl::json_sax<nl::json>
 
   bool end_array()
   {
+    if (!m_enum) {
+      std::cerr << "End of array, but no enum!";
+      return false;
+    }
+
+    m_enum = false;
     return true;
   }
 
@@ -314,7 +326,12 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
-    std::cout << "Key: " << val << std::endl;
+    if (val == ENUM_KEY) {
+      m_enum = true;
+      return true;
+    }
+
+    std::cerr << "Bad Key: " << val;
 
     return false;
   }
@@ -335,6 +352,7 @@ private:
   bool m_default = false;
   bool m_object = false;
   bool m_unsupported = false;
+  bool m_enum = false;
 
   std::stack<TokenType> m_typeStack;
 
@@ -346,6 +364,7 @@ private:
   const std::string TYPE_KEY = "type";
   const std::string DEFAULT_KEY = "default";
   const std::string REFERENCE_KEY = "$ref";
+  const std::string ENUM_KEY = "enum";
   const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, "items", "enum"};
   const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description"};
 };
@@ -357,6 +376,7 @@ struct SchemaTemplateParser : SchemaParser
     : SchemaParser(baseClassName)
   {
     output["objects"] = {};
+    output["enums"] = {};
     output["hasUuids"] = false;
   }
 
@@ -373,8 +393,6 @@ struct SchemaTemplateParser : SchemaParser
     void begin_object_properties(std::string name) override
     {
       nl::json current;
-
-      std::cout << "begin object " << name << std::endl;
 
       current["className"] = name;
       current["variables"] = {};
@@ -431,6 +449,12 @@ struct SchemaTemplateParser : SchemaParser
     {
       getCurrent()["variables"][name]["type"] = "reference";
       getCurrent()["variables"][name]["className"] = target;
+    }
+
+    void object_property_enum_element(std::string variable, std::string name) override
+    {
+      object_property_ref(variable, pascalCase(variable));
+      getCurrent()["enums"][pascalCase(variable)].push_back(name);
     }
 
     void end_object_properties() override

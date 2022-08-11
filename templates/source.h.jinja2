@@ -6,21 +6,20 @@
 #include <boost/uuids/uuid.hpp>
 {% endif %}
 
+{% for enumName, enumItems in enums %}
+enum {{ enumName }}
+{
+  {% for item in enumItems %}
+  {{ item }},
+  {% endfor %}
+};
+{% endfor %}
+
 {% for object in objects %}
 struct {{ object.className }}
 {
 {% for vName, props in object.variables %}
-{% if props.type ==  "integer" %}
-  int {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
-{% else if props.type == "string" %}
-  std::string {{ vName }}{% if existsIn(props, "default") %} = "{{ props.default }}" {% endif %};
-{% else if props.type == "number" %}
-  double {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
-{% else if props.type == "boolean" %}
-  bool {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
-{% else if props.type == "reference" %}
-  {{ props.className }} {{ vName }};
-{% endif %}
+  {% include "type.dispatch.jinja2" %}
 {% endfor %}
 };
 
