@@ -186,7 +186,14 @@ struct SchemaParser : nl::json_sax<nl::json>
     }
 
     if (m_enum) {
+      if (!is_type_consistent(STRING)) {
+        std::cerr << "ENUM elements are only supported for strings";
+        return false;
+      }
+
+      // If we encounter an enum then the type must be string
       object_property_enum_element(m_currentVariable, val);
+      m_typeStack.top() = STRING;
       return true;
     }
 
@@ -201,6 +208,7 @@ struct SchemaParser : nl::json_sax<nl::json>
 
       // check for inconsistency between "default" and "type"
       if (!is_type_consistent(tp)) {
+        std::cerr << "Type is not consistent! Was previously implied to be " << tp;
         return false;
       }
 
