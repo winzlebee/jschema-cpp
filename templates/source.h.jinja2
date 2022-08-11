@@ -1,0 +1,27 @@
+#pragma once
+
+#include <boost/json.hpp>
+#include <optional>
+{% if hasUuids %}
+#include <boost/uuids/uuid.hpp>
+{% endif %}
+
+{% for object in objects %}
+struct {{ object.className }}
+{
+{% for vName, props in object.variables %}
+{% if props.type ==  "integer" %}
+    int {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+{% else if props.type == "string" %}
+    std::string {{ vName }}{% if existsIn(props, "default") %} = "{{ props.default }}" {% endif %};
+{% else if props.type == "number" %}
+    double {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+{% else if props.type == "boolean" %}
+    bool {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+{% else if props.type == "reference" %}
+    {{ props.className }} {{ vName }};
+{% endif %}
+{% endfor %}
+};
+
+{% endfor %}
