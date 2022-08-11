@@ -11,6 +11,14 @@
         "isHome" : {
             "type" : "boolean",
             "default" : false
+        },
+        "address" : {
+            "type" : "object",
+            "properties" : {
+                "streetNumber" : {
+                    "type" : "integer"
+                }
+            }
         }
     }
 }

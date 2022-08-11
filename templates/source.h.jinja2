@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/json.hpp>
 #include <optional>
+#include <string>
 {% if hasUuids %}
 #include <boost/uuids/uuid.hpp>
 {% endif %}
@@ -11,15 +11,15 @@ struct {{ object.className }}
 {
 {% for vName, props in object.variables %}
 {% if props.type ==  "integer" %}
-    int {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+  int {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
 {% else if props.type == "string" %}
-    std::string {{ vName }}{% if existsIn(props, "default") %} = "{{ props.default }}" {% endif %};
+  std::string {{ vName }}{% if existsIn(props, "default") %} = "{{ props.default }}" {% endif %};
 {% else if props.type == "number" %}
-    double {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+  double {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
 {% else if props.type == "boolean" %}
-    bool {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
+  bool {{ vName }}{% if existsIn(props, "default") %} = {{ props.default }} {% endif %};
 {% else if props.type == "reference" %}
-    {{ props.className }} {{ vName }};
+  {{ props.className }} {{ vName }};
 {% endif %}
 {% endfor %}
 };

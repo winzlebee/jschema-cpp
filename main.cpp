@@ -4,6 +4,7 @@
 #include <string>
 #include <set>
 #include <stack>
+#include <string_view>
 
 #include "nlohmann/json.hpp"
 #include "inja/inja.hpp"
@@ -28,6 +29,38 @@ const std::map<std::string, TokenType> TOKEN_TYPES = {
   {"string", STRING},
   {"object", OBJECT},
 };
+
+// Makes a string conform to Camel Case
+// IE: Remove spaces and underscores and capitalise subsequent words
+std::string camelCase(const std::string &input)
+{
+  std::string result;
+  bool forceUpper = false;
+  for (std::size_t i = 0; i < input.size(); ++i) {
+    char c = forceUpper ? std::toupper(input[i]) : input[i];
+    if (std::isalpha(static_cast<unsigned char>(c))) {
+      result += c;
+    }
+    forceUpper = false;
+    if (c == '_' || c == ' ') {
+      forceUpper = true;
+    }
+  }
+
+  return result;
+}
+
+// Camel case with first letter capitalised
+std::string pascalCase(const std::string &input)
+{
+  std::string result = camelCase(input);
+
+  if (result.size()) {
+    result[0] = std::toupper(result[0]);
+  }
+
+  return result;
+}
 
 struct SchemaParser : nl::json_sax<nl::json>
 {
@@ -182,6 +215,9 @@ struct SchemaParser : nl::json_sax<nl::json>
           object_property_string(m_currentVariable);
           break;
         case OBJECT:
+          if (m_isPropertiesStack.size() > 2) {
+            object_property_ref(m_currentVariable, pascalCase(m_currentVariable));
+          }
           break;
       }
 
@@ -209,7 +245,7 @@ struct SchemaParser : nl::json_sax<nl::json>
     m_typeStack.push(UNKNOWN);
 
     if (m_isPropertiesStack.top()) {
-      begin_object_properties(m_currentVariable);
+      begin_object_properties(pascalCase(m_currentVariable));
     }
 
     m_isPropertiesStack.push(false);
@@ -332,68 +368,76 @@ struct SchemaTemplateParser : SchemaParser
   nl::json output;
 
   protected:
-    nl::json m_current;
+    std::stack<nl::json> m_stack;
 
     void begin_object_properties(std::string name) override
     {
-      m_current = {};
+      nl::json current;
 
       std::cout << "begin object " << name << std::endl;
 
-      m_current["className"] = name;
-      m_current["variables"] = {};
+      current["className"] = name;
+      current["variables"] = {};
+
+      m_stack.push(current);
+    }
+
+    nl::json &getCurrent()
+    {
+      return m_stack.top();
     }
 
     void object_property_number(std::string name) override
     {
-      m_current["variables"][name]["type"] = "number";
+      getCurrent()["variables"][name]["type"] = "number";
     }
 
     void object_default_number(std::string name, double number) override
     {
-      m_current["variables"][name]["default"] = number;
+      getCurrent()["variables"][name]["default"] = number;
     }
 
     void object_property_int(std::string name) override
     {
-      m_current["variables"][name]["type"] = "integer";
+      getCurrent()["variables"][name]["type"] = "integer";
     }
 
     void object_default_int(std::string name, int number) override
     {
-      m_current["variables"][name]["default"] = number;
+      getCurrent()["variables"][name]["default"] = number;
     }
 
     void object_property_string(std::string name) override
     {
-      m_current["variables"][name]["type"] = "string";
+      getCurrent()["variables"][name]["type"] = "string";
     }
 
     void object_default_string(std::string name, std::string string) override
     {
-      m_current["variables"][name]["default"] = string;
+      getCurrent()["variables"][name]["default"] = string;
     }
 
     void object_property_boolean(std::string name) override
     {
-      m_current["variables"][name]["type"] = "boolean";
+      getCurrent()["variables"][name]["type"] = "boolean";
     }
 
     void object_default_boolean(std::string name, bool boolean) override
     {
-      m_current["variables"][name]["default"] = boolean;
+      getCurrent()["variables"][name]["default"] = boolean;
     }
 
     void object_property_ref(std::string name, std::string target) override
     {
-      m_current["variables"][name]["type"] = name;
-      m_current["variables"][name]["className"] = target;
+      getCurrent()["variables"][name]["type"] = "reference";
+      getCurrent()["variables"][name]["className"] = target;
     }
 
     void end_object_properties() override
     {
       std::cout << "end object" << std::endl;
-      output["objects"].push_back(m_current);
+      output["objects"].push_back(getCurrent());
+      m_stack.pop();
     }
 
 };
@@ -403,7 +447,7 @@ struct SchemaTemplateParser : SchemaParser
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
-    std::cerr << "Requires a schema file and a base class name";
+    std::cerr << "Requires a schema file, output file and a base class name";
     return 1;
   }
 

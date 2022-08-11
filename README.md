@@ -1,6 +1,6 @@
 # jschema-cpp
 
-This repository contains an application that generates C++ classes and import/export code from a [JSON schema]().
+This repository contains an application that generates C++ classes and import/export code from a [JSON schema](https://json-schema.org/).
 Currently, the source files are generated to work with boost::json, but multiple backends are possible simply by editing
 the [inja templates]().
 
