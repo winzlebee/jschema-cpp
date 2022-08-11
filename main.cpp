@@ -454,7 +454,7 @@ struct SchemaTemplateParser : SchemaParser
     void object_property_enum_element(std::string variable, std::string name) override
     {
       object_property_ref(variable, pascalCase(variable));
-      getCurrent()["enums"][pascalCase(variable)].push_back(name);
+      output["enums"][pascalCase(variable)].push_back(name);
     }
 
     void end_object_properties() override
