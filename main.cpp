@@ -33,14 +33,30 @@ const std::map<std::string, TokenType> TOKEN_TYPES = {
   {"array", ARRAY}
 };
 
-const std::map<TokenType, std::string> CPP_TYPES = {
+static std::map<TokenType, std::string> CPP_TYPES = {
   {INTEGER, "int"},
   {NUMBER,  "double"},
   {BOOLEAN, "bool"},
-  {STRING,  "std::string"}
+  {STRING,  "std::string"},
+  {ARRAY, "std::vector"},
 };
 
-const std::string ARRAY_TYPE = "std::vector";
+void loadCppTypes()
+{
+  std::ifstream inTypes("templates/types.json");
+  auto json = nl::json::parse(inTypes);
+
+  for (const auto &tpItems : json.items()) {
+    if (!TOKEN_TYPES.count(tpItems.key())) {
+      std::cerr << "C++ Overload for unknown type: " << tpItems.key();
+      continue;
+    }
+
+    auto tpEnum = TOKEN_TYPES.at(tpItems.key());
+
+    CPP_TYPES[tpEnum] = tpItems.value();
+  }
+}
 
 // Makes a string conform to Camel Case
 // IE: Remove spaces and underscores and capitalise subsequent words
@@ -548,7 +564,7 @@ int main(int argc, char *argv[])
     }
 
     if (props.count("isArray")) {
-      cppType = jschema::ARRAY_TYPE + "<" + cppType + ">";
+      cppType = jschema::CPP_TYPES.at(jschema::ARRAY) + "<" + cppType + ">";
     }
 
     return cppType;

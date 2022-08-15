@@ -20,6 +20,10 @@
         "boolean" : {
             "type" : "string",
             "default" : "bool"
+        },
+        "array" : {
+            "type" : "string",
+            "default" : "std::vector"
         }
     }
 }
