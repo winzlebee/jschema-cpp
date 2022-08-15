@@ -1,7 +1,0 @@
-
-{% set type = "std::string" %}
-{% if existsIn(props, "isArray") %}
-{% set type = "std::vector<std::string>" %}
-{% endif %}
-
-{{ type }} {{ vName }} {% if existsIn(props, "default") %} = "{{ props.default }}" {% endif %};

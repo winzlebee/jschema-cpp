@@ -26,6 +26,7 @@
                 },
                 "streetType" : {
                     "type" : "string",
+                    "default" : "street",
                     "enum" : ["street", "lane", "crescent"]
                 }
             }

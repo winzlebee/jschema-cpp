@@ -1,0 +1,6 @@
+{
+    "string": "std::string",
+    "integer": "int",
+    "number": "double",
+    "boolean": "bool"
+}

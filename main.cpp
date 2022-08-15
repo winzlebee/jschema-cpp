@@ -29,8 +29,18 @@ const std::map<std::string, TokenType> TOKEN_TYPES = {
   {"boolean", BOOLEAN},
   {"string", STRING},
   {"object", OBJECT},
+  {"reference", OBJECT},
   {"array", ARRAY}
 };
+
+const std::map<TokenType, std::string> CPP_TYPES = {
+  {INTEGER, "int"},
+  {NUMBER,  "double"},
+  {BOOLEAN, "bool"},
+  {STRING,  "std::string"}
+};
+
+const std::string ARRAY_TYPE = "std::vector";
 
 // Makes a string conform to Camel Case
 // IE: Remove spaces and underscores and capitalise subsequent words
@@ -522,7 +532,28 @@ int main(int argc, char *argv[])
   inja::Environment env;
   env.set_trim_blocks(true);
   env.set_lstrip_blocks(true);
-  
+
+  env.add_callback("cppType", 1, [](inja::Arguments &args) {
+    auto props = args.at(0)->get<inja::json>();
+
+    auto tp = jschema::TOKEN_TYPES.at(props["type"]);
+    std::string cppType;
+
+    if (jschema::CPP_TYPES.count(tp)) {
+      cppType = jschema::CPP_TYPES.at(tp);
+    }
+
+    if (props.count("className")) {
+      cppType = props.at("className");
+    }
+
+    if (props.count("isArray")) {
+      cppType = jschema::ARRAY_TYPE + "<" + cppType + ">";
+    }
+
+    return cppType;
+  });
+
   env.render_to(outFile, env.parse_file("templates/source.h.jinja2"), tParser.output);
   
 }

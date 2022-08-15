@@ -20,7 +20,7 @@ enum {{ enumName }}
 struct {{ object.className }}
 {
 {% for vName, props in object.variables %}
-  {% include "type.dispatch.jinja2" %}
+  {% include "class.member.jinja2" %}
 {% endfor %}
 };
 

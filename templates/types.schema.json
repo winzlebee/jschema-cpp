@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://verbotics.com/schemas/model.schema.json",
+    "title": "Type declaration schema",
+    "description": "Schema that maps JSON types to C++ types. Custom types can be added as well.",
+    "type": "object",
+    "properties" : {
+        "string" : {
+            "type" : "string",
+            "default" : "std::string"
+        },
+        "integer" : {
+            "type" : "string",
+            "default" : "int"
+        },
+        "number" : {
+            "type" : "string",
+            "default" : "double"
+        },
+        "boolean" : {
+            "type" : "string",
+            "default" : "bool"
+        }
+    }
+}
