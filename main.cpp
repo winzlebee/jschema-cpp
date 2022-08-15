@@ -147,6 +147,11 @@ struct SchemaParser : nl::json_sax<nl::json>
   // Called when a boolean is parsed; value is passed
   bool boolean(bool val)
   {
+    if (m_unsupported) {
+      std::cout << "WARNING: Skipping unsupported tag " << m_currentVariable << ", value: " << val << std::endl;
+      return true;
+    } 
+
     if (m_default) {
       if (!is_type_consistent(BOOLEAN)) {
         return false;
@@ -164,6 +169,11 @@ struct SchemaParser : nl::json_sax<nl::json>
   // called when a signed or unsigned integer number is parsed; value is passed
   bool number_integer(number_integer_t val)
   {
+    if (m_unsupported) {
+      std::cout << "WARNING: Skipping unsupported tag " << m_currentVariable << ", value: " << val << std::endl;
+      return true;
+    }
+
     if (m_default) {
       if (!is_type_consistent(INTEGER)) {
         return false;
@@ -186,6 +196,11 @@ struct SchemaParser : nl::json_sax<nl::json>
   // called when a floating-point number is parsed; value and original string is passed
   bool number_float(number_float_t val, const string_t& s)
   {
+    if (m_unsupported) {
+      std::cout << "WARNING: Skipping unsupported tag " << m_currentVariable << ", value: " << val << std::endl;
+      return true;
+    }
+
     if (m_default) {
       if (!is_type_consistent(NUMBER)) {
         return false;
@@ -218,7 +233,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   bool string(string_t& val)
   {
     if (m_unsupported) {
-      std::cout << "WARNING: Skipping unsupported tag for class " << m_currentVariable << std::endl;
+      std::cout << "WARNING: Skipping unsupported tag " << m_currentVariable << ", value: " << val << std::endl;
       return true;
     }
 
@@ -465,7 +480,7 @@ private:
 
   // List of attributes that are treated as non-tokens, IE: Not used as names
   const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, REQUIRED_KEY, FORMAT_KEY, "items", "enum"};
-  const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description"};
+  const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description", "minimum", "maximum", "const", "minItems", "maxItems", "uniqueItems"};
 };
 
 struct SchemaTemplateParser : SchemaParser

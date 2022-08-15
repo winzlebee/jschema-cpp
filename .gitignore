@@ -34,3 +34,4 @@
 jschema-cpp
 source.h
 .vscode
+tests/model.schema.json
