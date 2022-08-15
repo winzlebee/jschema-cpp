@@ -41,6 +41,8 @@ static std::map<TokenType, std::string> CPP_TYPES = {
   {ARRAY, "std::vector"},
 };
 
+static std::string OPTIONAL_TYPE = "std::optional";
+
 void loadCppTypes()
 {
   std::ifstream inTypes("templates/types.json");
@@ -55,6 +57,10 @@ void loadCppTypes()
     auto tpEnum = TOKEN_TYPES.at(tpItems.key());
 
     CPP_TYPES[tpEnum] = tpItems.value();
+  }
+
+  if (json.count("optional")) {
+    OPTIONAL_TYPE = json.at("optional");
   }
 }
 
@@ -97,6 +103,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   {
     m_isPropertiesStack.push(false);
     m_isArrayItemsStack.push(false);
+    m_objectNameStack.push(baseClassName);
   }
 
   virtual ~SchemaParser()
@@ -105,6 +112,7 @@ struct SchemaParser : nl::json_sax<nl::json>
 
   // We've begun to encounter some object properties
   virtual void begin_object_properties(std::string name) = 0;
+  virtual void object_property_required(std::string property) = 0;
   virtual void object_property_number(std::string name) = 0;
   virtual void object_default_number(std::string variable, double number) = 0;
   virtual void object_property_int(std::string name) = 0;
@@ -227,6 +235,11 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
+    if (m_required) {
+      object_property_required(val);
+      return true;
+    }
+
     if (m_type) {
 
       if (!TOKEN_TYPES.count(val)) {
@@ -306,10 +319,11 @@ struct SchemaParser : nl::json_sax<nl::json>
     m_typeStack.pop();
     m_isArrayItemsStack.pop();
 
-    m_isPropertiesStack.pop();
     if (m_isPropertiesStack.top()) {
       end_object_properties();
     }
+
+    m_isPropertiesStack.pop();
 
     return true;
   }
@@ -321,12 +335,13 @@ struct SchemaParser : nl::json_sax<nl::json>
 
   bool end_array()
   {
-    if (!m_enum) {
-      std::cerr << "End of array, but no enum!";
+    if (!m_enum && !m_required) {
+      std::cerr << "End of array, but no enum or required array!";
       return false;
     }
 
     m_enum = false;
+    m_required = false;
     return true;
   }
 
@@ -381,6 +396,11 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
+    if (val == REQUIRED_KEY) {
+      m_required = true;
+      return true;
+    }
+
     std::cerr << "Bad Key: " << val;
 
     return false;
@@ -394,16 +414,20 @@ struct SchemaParser : nl::json_sax<nl::json>
   }
 
 private:
+  // String representing the name of the last token key that was processed
   std::string m_currentVariable;
+  std::string m_currentObject;
+
+  std::stack<std::string> m_objectNameStack;
 
   // Valid value-tags that can be encountered
   bool m_ref = false;
   bool m_type = false;
   bool m_default = false;
-  bool m_object = false;
   bool m_unsupported = false;
   bool m_enum = false;
   bool m_isArrayItems = false;
+  bool m_required = false;
 
   std::stack<TokenType> m_typeStack;
 
@@ -418,7 +442,10 @@ private:
   const std::string REFERENCE_KEY = "$ref";
   const std::string ENUM_KEY = "enum";
   const std::string ARRAY_ITEMS_KEY = "items";
-  const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, "items", "enum"};
+  const std::string REQUIRED_KEY = "required";
+
+  // List of attributes that are treated as non-tokens, IE: Not used as names
+  const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, REQUIRED_KEY, "items", "enum"};
   const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description"};
 };
 
@@ -515,6 +542,11 @@ struct SchemaTemplateParser : SchemaParser
       output["enums"][pascalCase(variable)].push_back(name);
     }
 
+    void object_property_required(std::string variable) override
+    {
+      getCurrent()["variables"][variable]["isRequired"] = true;
+    }
+
     void end_object_properties() override
     {
       std::cout << "end object" << std::endl;
@@ -565,6 +597,8 @@ int main(int argc, char *argv[])
 
     if (props.count("isArray")) {
       cppType = jschema::CPP_TYPES.at(jschema::ARRAY) + "<" + cppType + ">";
+    } else if (!props.count("isRequired")) {
+      cppType = jschema::OPTIONAL_TYPE + "<" + cppType + ">";
     }
 
     return cppType;

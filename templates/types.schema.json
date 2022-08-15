@@ -24,6 +24,10 @@
         "array" : {
             "type" : "string",
             "default" : "std::vector"
+        },
+        "optional" : {
+            "type" : "string",
+            "default" : "std::optional"
         }
     }
 }

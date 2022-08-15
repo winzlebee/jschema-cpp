@@ -29,7 +29,9 @@
                     "default" : "street",
                     "enum" : ["street", "lane", "crescent"]
                 }
-            }
+            },
+            "required" : ["streetNumber"]
         }
-    }
+    },
+    "required" : ["name", "address"]
 }

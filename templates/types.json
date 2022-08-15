@@ -3,5 +3,6 @@
     "integer": "int",
     "number": "double",
     "boolean": "bool",
-    "array" : "std::vector"
+    "array" : "std::vector",
+    "optional" : "std::optional"
 }

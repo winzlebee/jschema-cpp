@@ -41,7 +41,7 @@ Consult the matrix below for features that are supported so far
         maxItems [x]
     type: object [x]
         properties [x]
-        required [ ]
+        required [x]
     allOf [ ]
     anyOf [ ]
     oneOf [ ] 
