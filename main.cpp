@@ -240,7 +240,7 @@ struct SchemaParser : nl::json_sax<nl::json>
     if (m_ref) {
       // The last part of the reference key will be the target
       std::size_t lastSlash = val.find_last_of('/');
-      object_property_ref(m_currentVariable, val.substr(lastSlash + 1));
+      object_property_ref(m_currentVariable, pascalCase(val.substr(lastSlash + 1)));
       return true;
     }
 
