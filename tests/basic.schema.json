@@ -5,6 +5,10 @@
     "description": "Schema that describes a test object",
     "type": "object",
     "properties" : {
+        "uuid" : {
+            "type" : "string",
+            "format" : "uuid"
+        },
         "name" : {
             "type" : "string"
         },
@@ -33,5 +37,5 @@
             "required" : ["streetNumber"]
         }
     },
-    "required" : ["name", "address"]
+    "required" : ["name", "address", "uuid"]
 }

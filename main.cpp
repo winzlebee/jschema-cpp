@@ -33,6 +33,10 @@ const std::map<std::string, TokenType> TOKEN_TYPES = {
   {"array", ARRAY}
 };
 
+static std::map<std::string, std::string> FORMAT_TYPES = {
+  {"uuid", "boost::uuids::uuid"},
+};
+
 static std::map<TokenType, std::string> CPP_TYPES = {
   {INTEGER, "int"},
   {NUMBER,  "double"},
@@ -50,7 +54,8 @@ void loadCppTypes()
 
   for (const auto &tpItems : json.items()) {
     if (!TOKEN_TYPES.count(tpItems.key())) {
-      std::cerr << "C++ Overload for unknown type: " << tpItems.key();
+      std::cerr << "Adding format overload for type: " << tpItems.key();
+      FORMAT_TYPES[tpItems.key()] = tpItems.value();
       continue;
     }
 
@@ -123,6 +128,7 @@ struct SchemaParser : nl::json_sax<nl::json>
   virtual void object_default_boolean(std::string variable, bool boolean) = 0;
   virtual void object_property_ref(std::string name, std::string target) = 0;
   virtual void object_property_enum_element(std::string variable, std::string name) = 0;
+  virtual void object_property_format(std::string variable, std::string format) = 0;
   virtual void object_property_array(std::string name) = 0;
   virtual void end_object_properties() = 0;
 
@@ -240,6 +246,11 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
+    if (m_format) {
+      object_property_format(m_currentVariable, val);
+      return true;
+    }
+
     if (m_type) {
 
       if (!TOKEN_TYPES.count(val)) {
@@ -352,6 +363,7 @@ struct SchemaParser : nl::json_sax<nl::json>
     m_default = false;
     m_unsupported = false;
     m_isArrayItems = false;
+    m_format = false;
 
     std::cout << val << std::endl;
 
@@ -401,6 +413,11 @@ struct SchemaParser : nl::json_sax<nl::json>
       return true;
     }
 
+    if (val == FORMAT_KEY) {
+      m_format = true;
+      return true;
+    }
+
     std::cerr << "Bad Key: " << val;
 
     return false;
@@ -428,6 +445,7 @@ private:
   bool m_enum = false;
   bool m_isArrayItems = false;
   bool m_required = false;
+  bool m_format = false;
 
   std::stack<TokenType> m_typeStack;
 
@@ -443,9 +461,10 @@ private:
   const std::string ENUM_KEY = "enum";
   const std::string ARRAY_ITEMS_KEY = "items";
   const std::string REQUIRED_KEY = "required";
+  const std::string FORMAT_KEY = "format";
 
   // List of attributes that are treated as non-tokens, IE: Not used as names
-  const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, REQUIRED_KEY, "items", "enum"};
+  const std::set<std::string> NON_TOKEN_ATTRIBUTES = {PROPERTIES_KEY, TYPE_KEY, DEFAULT_KEY, REFERENCE_KEY, REQUIRED_KEY, FORMAT_KEY, "items", "enum"};
   const std::set<std::string> UNSUPPORTED_TOKENS = {"$schema", "$id", "title", "description"};
 };
 
@@ -457,7 +476,6 @@ struct SchemaTemplateParser : SchemaParser
   {
     output["objects"] = {};
     output["enums"] = {};
-    output["hasUuids"] = false;
   }
 
   virtual ~SchemaTemplateParser()
@@ -547,6 +565,11 @@ struct SchemaTemplateParser : SchemaParser
       getCurrent()["variables"][variable]["isRequired"] = true;
     }
 
+    void object_property_format(std::string variable, std::string format)
+    {
+      getCurrent()["variables"][variable]["type"] = format;
+    }
+
     void end_object_properties() override
     {
       std::cout << "end object" << std::endl;
@@ -584,15 +607,26 @@ int main(int argc, char *argv[])
   env.add_callback("cppType", 1, [](inja::Arguments &args) {
     auto props = args.at(0)->get<inja::json>();
 
-    auto tp = jschema::TOKEN_TYPES.at(props["type"]);
+    const std::string &typeStr = props["type"];
     std::string cppType;
 
-    if (jschema::CPP_TYPES.count(tp)) {
-      cppType = jschema::CPP_TYPES.at(tp);
+    if (jschema::TOKEN_TYPES.count(typeStr)) {
+      auto tp = jschema::TOKEN_TYPES.at(typeStr);
+      if (jschema::CPP_TYPES.count(tp)) {
+        cppType = jschema::CPP_TYPES.at(tp);
+      }
     }
-
+    
+    if (jschema::FORMAT_TYPES.count(typeStr)) {
+      cppType = jschema::FORMAT_TYPES.at(typeStr);
+    }
+    
     if (props.count("className")) {
       cppType = props.at("className");
+    }
+
+    if (cppType.empty()) {
+      std::cerr << "No C++ type found for type " << typeStr;
     }
 
     if (props.count("isArray")) {

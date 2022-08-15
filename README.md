@@ -6,7 +6,7 @@ the [inja templates]().
 
 ## Validation
 
-It is intended to eventually add static validation features. These will be documented in the 'features' matrix below.
+This project does not attempt to validate JSON files. There are other C++ libraries that can validate JSON files against a schema.
 
 ## Supported schema features
 
@@ -19,7 +19,7 @@ Consult the matrix below for features that are supported so far
         maxLength [ ]
         pattern [ ]
         format=date-time [ ]
-        format=uuid [ ]
+        format=uuid [x]
     type: string with enum [x]
     type: integer [x]
         maximum [ ]

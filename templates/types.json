@@ -4,5 +4,6 @@
     "number": "double",
     "boolean": "bool",
     "array" : "std::vector",
-    "optional" : "std::optional"
+    "optional" : "std::optional",
+    "uuid" : "boost::uuids::uuid"
 }
